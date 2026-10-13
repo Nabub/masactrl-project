@@ -1,0 +1,36 @@
+\section{Preliminaries: MasaCtrl}
+\label{sec:background}
+% The course requires a PRECISE description of the reimplemented / improved technique.
+% Notation and equations below follow Cao et al. (2023); the prose is ours to write.
+
+\paragraph{Latent diffusion and attention.}
+\todo{SD encodes images to latents $z$; a U-Net $\epsilon_\theta(z_t,t,P)$ predicts noise; DDIM \citep{song2021ddim}
+sampling. Each U-Net block has self-attention and cross-attention:}
+\begin{equation}
+\mathrm{Attention}(Q,K,V)=\mathrm{Softmax}\!\left(\frac{QK^{\top}}{\sqrt{d}}\right)V .
+\label{eq:attn}
+\end{equation}
+
+\paragraph{Mutual self-attention.}
+Two denoising processes run in parallel: the source process (real image inverted with DDIM, source prompt
+$P_s=\varnothing$) and the target process with prompt $P$, started from the same noise $z_T$.
+In the target process, the self-attention at step $t$ and layer $l$ is replaced by
+\begin{equation}
+\mathrm{EDIT}:=
+\begin{cases}
+\{Q,\;K_s,\;V_s\}, & t>S \text{ and } l>L,\\
+\{Q,\;K,\;V\}, & \text{otherwise},
+\end{cases}
+\label{eq:masactrl}
+\end{equation}
+\todo{explain why: early steps / encoder layers fix the layout from $P$; later decoder layers copy
+appearance from the source. Defaults $S=4$, $L=10$ out of 50 steps / 16 attention layers.}
+
+\paragraph{Mask-guided variant.}
+With foreground masks $M_s, M$ obtained by thresholding the averaged $16\times16$ cross-attention map of the object token,
+\begin{align}
+f_o^l &= \mathrm{Attention}(Q^l, K_s^l, V_s^l; M_s), \qquad
+f_b^l = \mathrm{Attention}(Q^l, K_s^l, V_s^l; 1-M_s),\\
+\bar f^l &= f_o^l \odot M + f_b^l \odot (1-M).
+\end{align}
+\todo{one or two sentences on what problem this solves (foreground/background query confusion).}

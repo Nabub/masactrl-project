@@ -1,0 +1,29 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup}
+\paragraph{Benchmark.} We evaluate on PIE-Bench \citep{ju2024pnpinversion}, 700 real images with source/target
+prompts and edit-region masks over 10 edit types. Because \method{} targets non-rigid edits, we additionally
+report the \emph{change pose} subset (40 images).
+
+\paragraph{Metrics.} Following PIE-Bench, structure distance \citep{tumanyan2022splicing} measured with DINO
+features \citep{caron2021dino}; PSNR, LPIPS \citep{zhang2018lpips}, MSE and SSIM on the region outside the
+edit mask (background preservation); and CLIP similarity \citep{radford2021clip} between the edited image
+(whole / edited region) and the target prompt (edit fidelity).
+
+\paragraph{Baselines and implementation.} All methods use Stable Diffusion v1.4 \citep{rombach2022ldm},
+DDIM with 50 steps and classifier-free guidance 7.5, $S=4$, $L=10$, and the same seed.
+We compare against (i) \emph{fixed seed}: the inverted noise denoised with the target prompt and no attention
+control; (ii) DDIM inversion + \method{} using the official implementation; and (iii) Direct Inversion
+\citep{ju2024pnpinversion} + \method{}. \todo{GPU type, runtime.}
+
+\subsection{Main Results}
+\input{tables/baseline}
+\todo{Discuss Table~\ref{tab:baseline} and Table~\ref{tab:baseline_pose}; sanity-check our DDIM+\method{}
+reproduction against the published PIE-Bench numbers.}
+
+\subsection{Qualitative Results}
+\todo{Figure: source $|$ fixed seed $|$ \method{} $|$ \ours{} on 4--5 pose edits.}
+
+\subsection{Ablation Study}
+\todo{Effect of $S$ and $L$; components of \ours{}.}

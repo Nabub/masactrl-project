@@ -1,0 +1,17 @@
+third_party/
+data/
+outputs/
+results/metrics_long*.csv
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+*.ckpt
+*.safetensors
+# LaTeX build files (Overleaf builds its own)
+paper/*.aux
+paper/*.log
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.pdf

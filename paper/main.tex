@@ -1,0 +1,63 @@
+%% AI6103 Group Project report — AAAI format, max 6 pages excluding references.
+%% Requires aaai2026.sty and aaai2026.bst from the AAAI-26 author kit (see paper/README.md).
+\documentclass[letterpaper]{article}
+\usepackage{aaai2026}            % camera-ready style (shows author names); do not add [submission]
+\usepackage{times}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\urlstyle{rm}
+\def\UrlFont{\rm}
+\usepackage{natbib}
+\usepackage{caption}
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+%% extra packages that are compatible with the AAAI style
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+
+\pdfinfo{
+/TemplateVersion (2026.1)
+}
+\setcounter{secnumdepth}{2}      % numbered sections are easier to reference in a course report
+
+%% ---------- team macros
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\method}{MasaCtrl}
+\newcommand{\ours}{\textsc{Ours}}   % rename once the improvement has a name
+
+\title{Improving Tuning-Free Mutual Self-Attention Control\\for Non-Rigid Image Editing}
+\author{
+    Bu Yanan,
+    Member Two,
+    Member Three,
+    Member Four,
+    Member Five,
+    Member Six
+}
+\affiliations{
+    Nanyang Technological University, Singapore\\
+    \{buya0001, \ldots\}@e.ntu.edu.sg
+}
+
+\begin{document}
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related}
+\input{sections/background}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\bibliography{refs}
+
+\end{document}

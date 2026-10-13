@@ -1,0 +1,16 @@
+# torch / torchvision: use the version that ships with Colab or your GPU server (tested target: torch 2.x, CUDA).
+# MasaCtrl's attention hook relies on diffusers 0.15's `Attention` class -> keep diffusers pinned.
+diffusers==0.15.0
+# diffusers 0.15 imports `cached_download`, removed in huggingface_hub 0.26 -> pin hub and a matching transformers.
+huggingface_hub==0.25.2
+transformers==4.38.2
+accelerate==0.27.2
+torchmetrics==1.3.2
+einops
+omegaconf
+pytorch_lightning
+opencv-python
+matplotlib
+pandas
+tabulate
+pyyaml

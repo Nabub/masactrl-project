@@ -1,0 +1,35 @@
+% Placeholder - overwritten by `python src/summarize.py` after the baseline runs.
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{lccccccc}
+\toprule
+Method & Struct.$\downarrow$ & PSNR$\uparrow$ & LPIPS$\downarrow$ & MSE$\downarrow$ & SSIM$\uparrow$ & CLIP-W$\uparrow$ & CLIP-E$\uparrow$ \\
+\midrule
+SD fixed seed (no control) & -- & -- & -- & -- & -- & -- & -- \\
+DDIM + MasaCtrl & -- & -- & -- & -- & -- & -- & -- \\
+DirectInv. + MasaCtrl & -- & -- & -- & -- & -- & -- & -- \\
+\midrule
+\textit{DDIM+MasaCtrl (PIE-Bench paper)} & 28.38 & 22.17 & 106.62 & 86.97 & 79.67 & 23.96 & 21.16 \\
+\textit{DirectInv.+MasaCtrl (PIE-Bench paper)} & 24.70 & 22.64 & 87.94 & 81.09 & 81.33 & 24.38 & 21.35 \\
+\bottomrule
+\end{tabular}
+\caption{Baseline results on PIE-Bench (700 images). Struct.\ $\times10^3$, LPIPS $\times10^3$, MSE $\times10^4$, SSIM $\times10^2$; PSNR/LPIPS/MSE/SSIM computed on the unedited region, CLIP-W/E on the whole/edited region. \textcolor{red}{Placeholder until our runs finish.}}
+\label{tab:baseline}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{lccccccc}
+\toprule
+Method & Struct.$\downarrow$ & PSNR$\uparrow$ & LPIPS$\downarrow$ & MSE$\downarrow$ & SSIM$\uparrow$ & CLIP-W$\uparrow$ & CLIP-E$\uparrow$ \\
+\midrule
+SD fixed seed (no control) & -- & -- & -- & -- & -- & -- & -- \\
+DDIM + MasaCtrl & -- & -- & -- & -- & -- & -- & -- \\
+DirectInv. + MasaCtrl & -- & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{Baseline results on the PIE-Bench \emph{change pose} subset (40 images), the non-rigid setting MasaCtrl targets.}
+\label{tab:baseline_pose}
+\end{table*}

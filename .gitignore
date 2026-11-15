@@ -1,6 +1,7 @@
 third_party/
 data/
 outputs/
+.venv/
 results/metrics_long*.csv
 __pycache__/
 *.pyc

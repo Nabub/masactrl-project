@@ -19,6 +19,22 @@ clone_pinned https://github.com/TencentARC/MasaCtrl.git     MasaCtrl     d0ba16b
 # PIE-Bench / PnP Inversion (Ju et al., ICLR 2024) - contains MasaCtrl + DirectInversion hook + evaluation metrics
 clone_pinned https://github.com/cure-lab/PnPInversion.git   PnPInversion 07f97f448150e2ca220bebd54c8f687c5c50c67a
 
+# Respect the team's --device setting in the pinned vendored pipeline. Reuse its
+# DDIM math and DirectInversion hook on every backend.
+python3 - "$ROOT/third_party/PnPInversion/models/masactrl/diffuser_utils.py" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+source = path.read_text()
+original = 'DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")'
+replacement = 'DEVICE = self._execution_device'
+if source.count(original) == 3:
+    path.write_text(source.replace(original, replacement))
+elif source.count(replacement) != 3:
+    raise SystemExit('Unexpected device selection in the pinned MasaCtrl pipeline')
+PY
+
 if [ "${1:-}" != "--no-pip" ]; then
   pip install -q -r "$ROOT/requirements.txt"
 fi

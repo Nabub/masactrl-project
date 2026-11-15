@@ -16,7 +16,8 @@ Deliverables: report (AAAI format, ≤ 6 pages excl. references) + 5-min video. 
 ```
 masactrl-project/
 ├── src/
-│   ├── run_baseline.py     # generate edits on PIE-Bench (or one image); add our method to METHODS here
+│   ├── run_baseline.py     # generate edits on PIE-Bench (or one image)
+│   ├── yangyuan.py         # foreground attention masks and hybrid initialization
 │   ├── evaluate.py         # PIE-Bench metrics (structure dist., bg PSNR/LPIPS/MSE/SSIM, CLIP)
 │   └── summarize.py        # -> results/summary.{csv,md} and paper/tables/baseline.tex
 ├── scripts/
@@ -54,7 +55,7 @@ The MasaCtrl paper itself reports **no quantitative numbers**, which is why we e
 ## Quick start (Colab or GPU server, ≥ 16 GB VRAM)
 
 ```bash
-git clone <this repo> && cd masactrl-project
+git clone https://github.com/Nabub/masactrl-project.git && cd masactrl-project
 bash scripts/setup.sh                 # pinned official code + deps
 bash scripts/run_baseline.sh smoke    # 1 image -> outputs/smoke/corgi_grid.png
 # get PIE-Bench (request form in the PnPInversion README) -> data/PIE-Bench/{mapping_file.json,annotation_images/}
@@ -66,14 +67,36 @@ Or open `notebooks/baseline_colab.ipynb` in Colab.
 
 Useful flags: `--limit 5` (debug), `--start_step/--start_layer` (S, L ablation), `--methods ddim+masactrl`.
 
-## Adding our improvement
+## Yangyuan improvement
 
-1. Implement it as a new method on `BaselineEditor` in `src/run_baseline.py` (e.g. a subclass of
-   `MutualSelfAttentionControl` in a new file `src/ours.py`).
-2. Register it in `METHODS` (`"ours": BaselineEditor.ours`).
-3. `METHODS="ddim+masactrl ours" bash scripts/run_baseline.sh pose` → same metrics, same table.
+Yangyuan uses cross-attention to locate the subject, restricts source feature
+transfer to the foreground, and initializes the background with seeded noise
+so it can follow the new prompt.
 
-Keep everything else (seed, steps, CFG, S, L, model) identical so the comparison is fair.
+Run both DDIM + MasaCtrl and Yangyuan after setup.
+
+```bash
+# Corgi comparison → outputs/corgi/corgi_grid.png
+python src/run_baseline.py --methods ddim+masactrl Yangyuan \
+  --image third_party/MasaCtrl/gradio_app/images/corgi.jpg --image_resize nearest \
+  --src_prompt 'a photo of a corgi lying down' \
+  --tgt_prompt 'a photo of a running corgi on green grass, side view' \
+  --steps 50 --guidance 3.0 --start_step 15 --start_layer 10 --seed 42 \
+  --model_id "${MODEL_ID:-CompVis/stable-diffusion-v1-4}" --device "${DEVICE:-auto}" \
+  --output_path outputs/corgi --rerun
+
+# Two category 8 PIE-Bench edits → outputs/background-reproduction/
+python src/run_baseline.py --methods ddim+masactrl Yangyuan \
+  --data_path data/PIE-Bench --categories 8 --limit 2 \
+  --subject_hints results/background_pilot_subject_hints.json \
+  --steps 50 --guidance 7.5 --start_step 4 --start_layer 10 --seed 1234 \
+  --model_id "${MODEL_ID:-CompVis/stable-diffusion-v1-4}" --device "${DEVICE:-auto}" \
+  --output_path outputs/background-reproduction --rerun
+```
+
+[Pinned setup for reproducing the Apple Silicon pilot](results/README.md#apple-silicon-reproduction)
+· [Score the background edits](results/README.md#score-the-background-pilot)
+· [Original corgi run](results/README.md#original-corgi-comparison)
 
 ## Team workflow
 

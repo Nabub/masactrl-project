@@ -201,9 +201,13 @@ def main():
     p.add_argument("--rerun", action="store_true", help="overwrite existing outputs")
     # single-image sanity check (no PIE-Bench needed)
     p.add_argument("--image", help="run one image instead of PIE-Bench")
+    p.add_argument("--image_resize", choices=("pie-bench", "nearest"), default="pie-bench",
+                   help="resize a single image with the benchmark or original prototype preprocessing")
     p.add_argument("--src_prompt", default="")
     p.add_argument("--tgt_prompt", default="a photo of a running corgi")
     args = p.parse_args()
+    if args.image_resize == "nearest" and not args.image:
+        p.error("--image_resize nearest requires --image")
     subject_hints = {}
     if args.subject_hints:
         try:
@@ -248,7 +252,14 @@ def main():
         prompt_src = item["original_prompt"].replace("[", "").replace("]", "")
         prompt_tar = item["editing_prompt"].replace("[", "").replace("]", "")
         img_path = img_root / item["image_path"]
-        image_np = load_512(str(img_path))
+        if args.image_resize == "nearest":
+            from torchvision.io import ImageReadMode, read_image
+
+            pixels = read_image(str(img_path), mode=ImageReadMode.RGB).unsqueeze(0)
+            resized = F.interpolate(pixels, (512, 512), mode="nearest")
+            image_np = resized[0].permute(1, 2, 0).numpy()
+        else:
+            image_np = load_512(str(img_path))
         for method in args.methods:
             rel = Path(item["image_path"]).with_suffix(".png") if not args.image else Path(Path(args.image).stem + ".png")
             save_path = out_root / method / rel

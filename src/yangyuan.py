@@ -12,9 +12,8 @@ import torch
 import torch.nn.functional as F
 
 
-SCALE_WEIGHTS = {16: 0.2, 32: 0.3, 64: 0.5}
+MASK_RESOLUTION = 16
 MASK_THRESHOLD = 0.25
-COARSE_WEIGHT = 0.5
 FOREGROUND_STRENGTH = 0.8
 GENERIC_WORDS = frozenset(
     "a an the and or is are this that of to in on at for with by from as "
@@ -104,16 +103,6 @@ def _resize(values, side):
     return F.interpolate(values, (side, side), mode="bilinear", align_corners=False)
 
 
-def _fuse(maps, side):
-    fused = sum(_resize(value, side) * SCALE_WEIGHTS[resolution]
-                for resolution, value in maps.items())
-    return fused / sum(SCALE_WEIGHTS[resolution] for resolution in maps)
-
-
-def _coarse_agreement(fused, coarse):
-    return _normalize(coarse * ((1 - COARSE_WEIGHT) * fused + COARSE_WEIGHT))
-
-
 def _soft_mask(scores):
     width = 0.08
     weight = ((scores - MASK_THRESHOLD + width) / (2 * width)).clamp(0, 1)
@@ -137,7 +126,7 @@ class _AttentionState:
 
 
 class _InversionProbe(_AttentionState):
-    """Collect subject attention at the first eight inversion steps."""
+    """Collect 16x16 subject attention at the first eight inversion steps."""
 
     def __init__(self, embeddings, indices):
         super().__init__()
@@ -145,7 +134,6 @@ class _InversionProbe(_AttentionState):
         self.indices = indices
         self.projected_keys = {}
         self.priors = []
-        self.coarse_priors = []
 
     def cross_attention(self, layer, q, probabilities, heads, side):
         if self.cur_step >= 8:
@@ -162,18 +150,13 @@ class _InversionProbe(_AttentionState):
     def after_step(self):
         if self.current_maps:
             maps = self.averaged_maps()
-            self.priors.append(_normalize(_fuse(maps, 64)).float().cpu())
-            if 16 in maps:
-                self.coarse_priors.append(maps[16].float().cpu())
+            self.priors.append(maps[MASK_RESOLUTION].float().cpu())
             self.current_maps.clear()
 
     def source_mask(self, size):
         if not self.priors:
             raise RuntimeError("No source attention was recorded during inversion")
         prior = _normalize(torch.stack(self.priors).mean(0))
-        if self.coarse_priors:
-            coarse = _normalize(torch.stack(self.coarse_priors).mean(0))
-            prior = _coarse_agreement(prior, _resize(coarse, 64))
         return _soft_mask(_resize(prior, size))
 
 
@@ -214,12 +197,7 @@ class _ForegroundTransfer(_AttentionState):
         if side not in self.source_masks:
             self.source_masks[side] = F.interpolate(self.source_mask.to(q), (side, side), mode="area").flatten()
         source = self.source_masks[side]
-        fused = _fuse(maps, side)
-        if 16 in maps:
-            fused = _coarse_agreement(fused, _resize(maps[16], side))
-        else:
-            fused = _normalize(fused)
-        target = _soft_mask(fused).reshape(1, -1, 1) * FOREGROUND_STRENGTH
+        target = _soft_mask(_resize(maps[MASK_RESOLUTION], side)).reshape(1, -1, 1) * FOREGROUND_STRENGTH
         if not source.any().item() or not target.any().item():
             return output
         bias = source.clamp_min(1e-6).log().masked_fill(source <= 0, torch.finfo(q.dtype).min)
@@ -277,7 +255,7 @@ def _register_attention(model, editor, chunk_size, *, baseline=False):
             side = int(tokens ** 0.5)
             if is_cross:
                 probabilities = (torch.bmm(q, k.transpose(1, 2)) * layer.scale).softmax(-1)
-                if cross_probe is not None and side in SCALE_WEIGHTS and side * side == tokens:
+                if cross_probe is not None and tokens == MASK_RESOLUTION ** 2:
                     cross_probe(layer, q, probabilities, heads, side)
                 output = torch.bmm(probabilities, v)
             else:

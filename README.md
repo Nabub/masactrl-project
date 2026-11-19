@@ -69,7 +69,7 @@ Useful flags: `--limit 5` (debug), `--start_step/--start_layer` (S, L ablation),
 
 ## Yangyuan improvement
 
-Yangyuan uses cross-attention to locate the subject, restricts source feature
+Yangyuan uses 16×16 cross-attention maps to locate the subject, restricts source feature
 transfer to the foreground, and initializes the background with seeded noise
 so it can follow the new prompt.
 

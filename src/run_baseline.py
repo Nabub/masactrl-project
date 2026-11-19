@@ -192,7 +192,7 @@ def main():
     p.add_argument("--model_id", default="CompVis/stable-diffusion-v1-4")
     p.add_argument("--steps", type=int, default=50)
     p.add_argument("--guidance", type=float, default=7.5)
-    p.add_argument("--start_step", type=int, default=4, help="S in the paper")
+    p.add_argument("--start_step", type=int, default=15, help="S in the paper")
     p.add_argument("--start_layer", type=int, default=10, help="L in the paper")
     p.add_argument("--seed", type=int, default=1234)
     p.add_argument("--device", choices=("auto", "cuda", "mps", "cpu"), default="auto")

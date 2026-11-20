@@ -11,6 +11,8 @@ fixed_seed               SD v1.4, DDIM-inverted noise + target prompt, no attent
 ddim+masactrl            Official MasaCtrl, DDIM inversion, S=4, L=10 (paper default).
 directinversion+masactrl MasaCtrl on top of PnP/Direct Inversion (stronger baseline).
 Yangyuan                MasaCtrl with attention masks and hybrid initialization.
+Yangyuan-original       Yangyuan without confidence gating (ablation control).
+Yangyuan-gate           Confidence gating without temporal smoothing.
 
 Every method writes one 512x512 PNG per image to
     <output_path>/<method>/<image_path without extension>.png
@@ -156,12 +158,27 @@ class BaselineEditor:
         )
         return tensor_to_pil(edited)
 
+    def yangyuan_ablation(self, key, image_np, prompt_src, prompt_tar, *, subject_hint="",
+                          confidence_gate, confidence_momentum):
+        from yangyuan import improved_edit
+
+        edited = improved_edit(
+            self.model, image_to_tensor(image_np, self.device), prompt_src, prompt_tar,
+            subject_hint=subject_hint, steps=self.num_steps, guidance=self.guidance,
+            start_step=self.start_step, start_layer=self.start_layer, seed=self.seed,
+            query_chunk_size=self.query_chunk_size, confidence_gate=confidence_gate,
+            confidence_momentum=confidence_momentum,
+        )
+        return tensor_to_pil(edited)
+
 
 METHODS = {
     "fixed_seed": BaselineEditor.fixed_seed,
     "ddim+masactrl": BaselineEditor.ddim_masactrl,
     "directinversion+masactrl": BaselineEditor.directinversion_masactrl,
     "Yangyuan": BaselineEditor.yangyuan,
+    "Yangyuan-original": BaselineEditor.yangyuan_ablation,
+    "Yangyuan-gate": BaselineEditor.yangyuan_ablation,
 }
 
 
@@ -183,7 +200,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data_path", default="data/PIE-Bench", help="folder with mapping_file.json and annotation_images/")
     p.add_argument("--output_path", default="outputs")
-    p.add_argument("--methods", nargs="+", default=[m for m in METHODS if m != "Yangyuan"], choices=list(METHODS))
+    p.add_argument("--methods", nargs="+", default=[m for m in METHODS if not m.startswith("Yangyuan")],
+                   choices=list(METHODS))
     p.add_argument("--categories", nargs="+", default=[str(i) for i in range(10)],
                    help="PIE-Bench editing_type_id; 5 = change pose (MasaCtrl's target case)")
     p.add_argument("--limit", type=int, default=0, help="only the first N images (debugging)")
@@ -276,6 +294,13 @@ def main():
             if method == "Yangyuan":
                 edited = METHODS[method](editor, key, image_np, item["original_prompt"], item["editing_prompt"],
                                          subject_hint=subject_hints.get(key, item.get("blended_word", "")))
+            elif method.startswith("Yangyuan"):
+                edited = METHODS[method](
+                    editor, key, image_np, item["original_prompt"], item["editing_prompt"],
+                    subject_hint=subject_hints.get(key, item.get("blended_word", "")),
+                    confidence_gate=method != "Yangyuan-original",
+                    confidence_momentum=0.0,
+                )
             else:
                 edited = METHODS[method](editor, key, image_np, prompt_src, prompt_tar)
             if device.type == "cuda":

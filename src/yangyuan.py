@@ -1,4 +1,4 @@
-"""Attention-only masks and hybrid initialization for MasaCtrl on PIE-Bench.
+"""Confidence-gated attention masks and hybrid initialization for MasaCtrl.
 
 The benchmark mask stays with the evaluator. Editing only uses the source image,
 prompts, and optional subject text. The source prompt is used for localization
@@ -15,6 +15,7 @@ import torch.nn.functional as F
 MASK_RESOLUTION = 16
 MASK_THRESHOLD = 0.25
 FOREGROUND_STRENGTH = 0.8
+CONFIDENCE_MOMENTUM = 0.7
 GENERIC_WORDS = frozenset(
     "a an the and or is are this that of to in on at for with by from as "
     "photo image picture portrait painting drawing view side front background".split()
@@ -163,14 +164,21 @@ class _InversionProbe(_AttentionState):
 class _ForegroundTransfer(_AttentionState):
     """Transfer source keys and values only where the target localizes the subject."""
 
-    def __init__(self, source_mask, indices, start_step, start_layer):
+    def __init__(self, source_mask, indices, start_step, start_layer, *, confidence_gate=True,
+                 confidence_momentum=CONFIDENCE_MOMENTUM):
         super().__init__()
         self.source_mask = source_mask
         self.indices = indices
         self.start_step = start_step
         self.start_layer = start_layer
+        self.confidence_gate = confidence_gate
+        self.confidence_momentum = confidence_momentum
         self.previous_maps = {}
         self.source_masks = {}
+        # Keep one confidence history per attention layer. The same layer is
+        # visited at every denoising step, so this smooths time without mixing
+        # confidence values from different U-Net resolutions.
+        self.previous_confidence = {}
 
     def cross_attention(self, layer, q, probabilities, heads, side):
         if q.shape[0] != 4 * heads:
@@ -205,11 +213,29 @@ class _ForegroundTransfer(_AttentionState):
         target_q = q.reshape(4, heads, *q.shape[1:])[[1, 3]].flatten(0, 1)
         source_k = k.reshape(4, heads, *k.shape[1:])[[0, 2]].flatten(0, 1)
         source_v = v.reshape(4, heads, *v.shape[1:])[[0, 2]].flatten(0, 1)
-        transferred = _attention(target_q, source_k, source_v, scale, chunk_size, bias)
+        if self.confidence_gate:
+            transferred, confidence = _attention_with_confidence(
+                target_q, source_k, source_v, scale, chunk_size, bias,
+                valid_keys=(source > 0).sum().clamp_min(2),
+            )
+            layer_index = self.cur_att_layer
+            previous = self.previous_confidence.get(layer_index)
+            if previous is not None and previous.shape == confidence.shape:
+                momentum = self.confidence_momentum
+                confidence = momentum * previous + (1 - momentum) * confidence
+            confidence = confidence.clamp(0, 1)
+            self.previous_confidence[layer_index] = confidence.detach()
+        else:
+            transferred = _attention(target_q, source_k, source_v, scale, chunk_size, bias)
+            confidence = torch.ones(
+                (target_q.shape[0], target_q.shape[1], 1), device=target_q.device, dtype=target_q.dtype
+            )
+        transfer_gate = target * confidence
         routed = output.reshape(4, heads, *output.shape[1:]).clone()
-        routed[[1, 3]] = routed[[1, 3]] * (1 - target) + transferred.reshape(
+        transfer_gate = transfer_gate.reshape(2, heads, output.shape[1], 1)
+        routed[[1, 3]] = routed[[1, 3]] * (1 - transfer_gate) + transferred.reshape(
             2, heads, *output.shape[1:]
-        ) * target
+        ) * transfer_gate
         return routed.flatten(0, 1)
 
 
@@ -224,6 +250,32 @@ def _attention(q, k, v, scale, chunk_size, key_bias=None):
             scores = scores + key_bias
         output[:, start:stop] = torch.bmm(scores.softmax(-1), v)
     return output
+
+
+def _attention_with_confidence(q, k, v, scale, chunk_size, key_bias=None, valid_keys=None):
+    """Chunked attention plus per-query confidence from normalized entropy.
+
+    A concentrated distribution over source foreground keys is treated as a
+    reliable correspondence. Diffuse attention falls back toward target-native
+    features. Confidence is returned per batch/head/query as [B, Q, 1].
+    """
+    output = torch.empty_like(q)
+    confidence = torch.empty((*q.shape[:2], 1), device=q.device, dtype=torch.float32)
+    transposed_k = k.transpose(1, 2)
+    if valid_keys is None:
+        valid_keys = k.shape[-2]
+    log_valid_keys = torch.log(torch.as_tensor(valid_keys, device=q.device, dtype=torch.float32)).clamp_min(1e-6)
+    for start in range(0, q.shape[1], chunk_size):
+        stop = min(start + chunk_size, q.shape[1])
+        scores = torch.bmm(q[:, start:stop], transposed_k) * scale
+        if key_bias is not None:
+            scores = scores + key_bias
+        probabilities = scores.softmax(-1)
+        output[:, start:stop] = torch.bmm(probabilities, v)
+        probabilities_fp32 = probabilities.float()
+        entropy = -(probabilities_fp32 * probabilities_fp32.clamp_min(1e-8).log()).sum(-1, keepdim=True)
+        confidence[:, start:stop] = (1 - entropy / log_valid_keys).clamp(0, 1)
+    return output, confidence
 
 
 def _register_attention(model, editor, chunk_size, *, baseline=False):
@@ -288,7 +340,8 @@ def register_chunked_baseline(model, editor, query_chunk_size=128):
 
 @torch.no_grad()
 def improved_edit(model, source_tensor, source_prompt, target_prompt, *, subject_hint="",
-                  steps, guidance, start_step, start_layer, seed, query_chunk_size=128):
+                  steps, guidance, start_step, start_layer, seed, query_chunk_size=128,
+                  confidence_gate=True, confidence_momentum=CONFIDENCE_MOMENTUM):
     """Run the improved MasaCtrl method and return the edited 3×H×W tensor."""
     if guidance <= 1:
         raise ValueError("Yangyuan needs classifier-free guidance greater than 1")
@@ -317,7 +370,12 @@ def improved_edit(model, source_tensor, source_prompt, target_prompt, *, subject
                       RuntimeWarning, stacklevel=2)
         target_latent = inversion
 
-    editor = _ForegroundTransfer(source_mask, target_indices, start_step, start_layer)
+    if not 0 <= confidence_momentum < 1:
+        raise ValueError("confidence_momentum must be in [0, 1)")
+    editor = _ForegroundTransfer(
+        source_mask, target_indices, start_step, start_layer,
+        confidence_gate=confidence_gate, confidence_momentum=confidence_momentum,
+    )
     _register_attention(model, editor, query_chunk_size)
     result = model(["", target_prompt], latents=torch.cat([inversion, target_latent]),
                    num_inference_steps=steps, guidance_scale=guidance, height=size, width=size)

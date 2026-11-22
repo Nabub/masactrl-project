@@ -1,0 +1,17 @@
+question,image_file,pie_id,image_path,A,B,instruction,target_prompt
+1,Q01.jpg,814000000009,8_change_background_80/1_artificial/4_outdoor/814000000009.jpg,improvement1,baseline,Replace the stars with the polar light in the sky,a man and woman standing on a pier looking at the polar light in sky
+2,Q02.jpg,822000000007,8_change_background_80/2_natural/2_human/822000000007.jpg,baseline,improvement1,Change the wall to a park,a woman in a black dress and hat stands in front of a large park
+3,Q03.jpg,823000000003,8_change_background_80/2_natural/3_indoor/823000000003.jpg,improvement1,baseline,Replace map with carpet,"a notebook, pencil, and camera on a carpet"
+4,Q04.jpg,824000000009,8_change_background_80/2_natural/4_outdoor/824000000009.jpg,baseline,improvement1,change the moss to rocks,a small mushroom is sitting on top of rocks
+5,Q05.jpg,821000000006,8_change_background_80/2_natural/1_animal/821000000006.jpg,improvement1,baseline,Change the perch for the kingfisher from a branch to a rock,a kingfisher is stretching its wings on a rock
+6,Q06.jpg,812000000008,8_change_background_80/1_artificial/2_human/812000000008.jpg,baseline,improvement1,Change the space to the desert,a woman in a white suit is riding a street lamp over the desert
+7,Q07.jpg,821000000008,8_change_background_80/2_natural/1_animal/821000000008.jpg,improvement1,baseline,Change the grass to water,a brown dog with a collar on is looking at the camera in the water
+8,Q08.jpg,824000000001,8_change_background_80/2_natural/4_outdoor/824000000001.jpg,baseline,improvement1,change the background from mountains to sea,a chair in front of sea
+9,Q09.jpg,813000000003,8_change_background_80/1_artificial/3_indoor/813000000003.jpg,improvement1,baseline,Change the background color from brown into red,a couch with studded arms and a gold frame with a red background
+10,Q10.jpg,822000000009,8_change_background_80/2_natural/2_human/822000000009.jpg,baseline,improvement1,Change the path from snow covered to leaves covered,a woman wearing a hat and gloves is walking on a leaves covered path
+11,Q11.jpg,811000000001,8_change_background_80/1_artificial/1_animal/811000000001.jpg,baseline,improvement1,Make the background dark,watercolor painting of a deer with flowers on its head standing in dark background
+12,Q12.jpg,814000000008,8_change_background_80/1_artificial/4_outdoor/814000000008.jpg,improvement1,baseline,Change the hill to a sea,a blue and green illustration of a house in a sea
+13,Q13.jpg,811000000005,8_change_background_80/1_artificial/1_animal/811000000005.jpg,baseline,improvement1,Add a cave to the owl illustration,an illustration of an owl sitting in a cave
+14,Q14.jpg,823000000000,8_change_background_80/2_natural/3_indoor/823000000000.jpg,improvement1,baseline,Change the background to green,"grapefruit candle, glass vase and incense sticks in green background"
+15,Q15.jpg,813000000001,8_change_background_80/1_artificial/3_indoor/813000000001.jpg,baseline,improvement1,Replace the fire with lanterns,a desk with a lamp and books on it and lanterns in the background
+16,Q16.jpg,812000000009,8_change_background_80/1_artificial/2_human/812000000009.jpg,improvement1,baseline,Add field to the painting,a watercolor painting of a couple holding hands in the field

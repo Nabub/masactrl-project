@@ -7,6 +7,8 @@ Paper: **MasaCtrl: Tuning-Free Mutual Self-Attention Control for Consistent Imag
 (Cao et al., ICCV 2023) — [arXiv 2304.08465](https://arxiv.org/abs/2304.08465) ·
 [official code](https://github.com/TencentARC/MasaCtrl)
 
+Our Group's Project Repository: [GitHub repository - masactrl-project](https://github.com/Nabub/masactrl-project)
+
 Deliverables: report (AAAI format, ≤ 6 pages excl. references) + 5-min video. Report source is in `paper/`.
 
 ---

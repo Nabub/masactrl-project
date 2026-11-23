@@ -11,6 +11,13 @@ Our Group's Project Repository: [GitHub repository - masactrl-project](https://g
 
 Deliverables: report (AAAI format, ≤ 6 pages excl. references) + 5-min video. Report source is in `paper/`.
 
+Group Members (Name — Matriculation Number):
+Yangyuan Li — G2605384E
+Ziang Wang — G2608868E
+Yiping Ding — G2604966A
+Jinnan Yao — G2603383B
+Yanan Bu — G2610370H
+Jiayi Ma — G2610678A
 ---
 
 ## Repository layout
